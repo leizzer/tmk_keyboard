@@ -31,6 +31,8 @@ static uint8_t real_mods = 0;
 static uint8_t weak_mods = 0;
 
 #ifdef USB_6KRO_ENABLE
+#undef KEYBOARD_REPORT_KEYS
+#define KEYBOARD_REPORT_KEYS 6
 #define RO_ADD(a, b) ((a + b) % KEYBOARD_REPORT_KEYS)
 #define RO_SUB(a, b) ((a - b + KEYBOARD_REPORT_KEYS) % KEYBOARD_REPORT_KEYS)
 #define RO_INC(a) RO_ADD(a, 1)
@@ -144,12 +146,22 @@ void clear_oneshot_mods(void)
  */
 uint8_t has_anykey(void)
 {
+#ifdef USB_6KRO_ENABLE
+#ifdef NKRO_ENABLE
+    if (!keyboard_nkro) {
+#endif
+        return cb_count;
+#ifdef NKRO_ENABLE
+    }
+#endif
+#else
     uint8_t cnt = 0;
     for (uint8_t i = 1; i < KEYBOARD_REPORT_SIZE; i++) {
         if (keyboard_report->raw[i])
             cnt++;
     }
     return cnt;
+#endif
 }
 
 uint8_t has_anymod(void)
@@ -181,7 +193,21 @@ uint8_t get_first_key(void)
 #endif
 }
 
-
+#ifdef USB_6KRO_ENABLE
+#ifdef DEBUG
+static void dump_report_keys(void) {
+    dprintf("\n");
+    for (uint8_t i = 0; i < REPORT_KEYS; i++) {
+        dprintf("%02X ", keyboard_report->keys[i]);
+    }
+    dprintf("\n");
+    for (uint8_t i = 0; i < REPORT_KEYS; i++) {
+        dprintf("%c%c ", i==cb_head?'H':' ', i==cb_tail?'T':' ');
+    }
+    dprintf("\n");
+}
+#endif
+#endif
 
 /* local functions */
 static inline void add_key_byte(uint8_t code)
@@ -231,6 +257,9 @@ static inline void add_key_byte(uint8_t code)
     keyboard_report->keys[cb_tail] = code;
     cb_tail = RO_INC(cb_tail);
     cb_count++;
+#ifdef DEBUG
+    dump_report_keys();
+#endif
 #else
     int8_t i = 0;
     int8_t empty = -1;
@@ -277,6 +306,9 @@ static inline void del_key_byte(uint8_t code)
             i = RO_INC(i);
         } while (i != cb_tail);
     }
+#ifdef DEBUG
+    dump_report_keys();
+#endif
 #else
     for (uint8_t i = 0; i < KEYBOARD_REPORT_KEYS; i++) {
         if (keyboard_report->keys[i] == code) {
