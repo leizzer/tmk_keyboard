@@ -24,6 +24,9 @@ static void default_layer_state_set(uint32_t state)
     default_layer_state = state;
     hook_default_layer_change(default_layer_state);
     default_layer_debug(); debug("\n");
+#ifdef LEDMAP_ENABLE
+    default_layer_state_change(state);
+#endif
     clear_keyboard_but_mods(); // To avoid stuck keys
 }
 
@@ -66,6 +69,9 @@ static void layer_state_set(uint32_t state)
     layer_state = state;
     hook_layer_change(layer_state);
     layer_debug(); dprintln();
+#ifdef LEDMAP_ENABLE
+    layer_state_change(state);
+#endif
     clear_keyboard_but_mods(); // To avoid stuck keys
 }
 

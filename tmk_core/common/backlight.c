@@ -33,6 +33,16 @@ void backlight_init(void)
 
 void backlight_increase(void)
 {
+#ifdef BACKLIGHT_CUSTOM
+    if (backlight_config.enable) {
+        if (backlight_config.level < BACKLIGHT_LEVELS) {
+            backlight_config.level++;
+            eeconfig_write_backlight(backlight_config.raw);
+        }
+        dprintf("backlight custom increase: %u\n", backlight_config.level);
+        backlight_set(backlight_config.level);
+    }
+#else
     if(backlight_config.level < BACKLIGHT_LEVELS)
     {
         backlight_config.level++;
@@ -41,10 +51,22 @@ void backlight_increase(void)
     }
     dprintf("backlight increase: %u\n", backlight_config.level);
     backlight_set(backlight_config.level);
+#endif
 }
 
 void backlight_decrease(void)
 {
+#ifdef BACKLIGHT_CUSTOM
+    if (backlight_config.enable) {
+        if(backlight_config.level > 1)
+        {
+            backlight_config.level--;
+            eeconfig_write_backlight(backlight_config.raw);
+        }
+        dprintf("backlight custom decrease: %u\n", backlight_config.level);
+        backlight_set(backlight_config.level);
+    }
+#else
     if(backlight_config.level > 0)
     {
         backlight_config.level--;
@@ -53,11 +75,18 @@ void backlight_decrease(void)
     }
     dprintf("backlight decrease: %u\n", backlight_config.level);
     backlight_set(backlight_config.level);
+#endif
 }
 
 void backlight_toggle(void)
 {
     backlight_config.enable ^= 1;
+    if (backlight_config.enable)
+    {
+        if (backlight_config.level == 0) {
+            backlight_config.level = 1;
+        }
+    }
     eeconfig_write_backlight(backlight_config.raw);
     dprintf("backlight toggle: %u\n", backlight_config.enable);
     backlight_set(backlight_config.enable ? backlight_config.level : 0);
@@ -77,6 +106,14 @@ void backlight_step(void)
 }
 
 void backlight_level(uint8_t level)
+{
+    backlight_config.level = level;
+    backlight_config.enable = !!backlight_config.level;
+    eeconfig_write_backlight(backlight_config.raw);
+    backlight_set(backlight_config.level);
+}
+
+void backlight_xor(uint8_t level)
 {
     backlight_config.level ^= level;
     backlight_config.enable = !!backlight_config.level;
